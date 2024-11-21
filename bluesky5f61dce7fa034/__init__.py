@@ -1082,26 +1082,40 @@ def convert_to_web_url(uri: str, user_handle: str) -> str:
     return web_url
 
 def format_date_string(date_string: str) -> str:
-    if "." in date_string:
-        date_string = date_string.split(".")[0] + "." + date_string.split(".")[1][:6]
+    """
+    Parse and format a date string into a consistent ISO 8601 format.
+    """
+    match = re.match(r"^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$", date_string)
+    if not match:
+        raise ValueError(f"Unsupported date format: {date_string}")
     
+    base, fractional, suffix = match.groups()
+    if fractional:
+        fractional = fractional[:7]
+    else:
+        fractional = ""
+    
+    if not suffix:
+        suffix = "Z"
+    
+    standardized_date = f"{base}{fractional}{suffix}"
     date_formats = [
         "%Y-%m-%dT%H:%M:%S.%fZ",      
-        "%Y-%m-%dT%H:%M:%S.%f",      
-        "%Y-%m-%dT%H:%M:%S.%f%z",     
-        "%Y-%m-%dT%H:%M:%S%z",       
+        "%Y-%m-%dT%H:%M:%S.%f%z",    
         "%Y-%m-%dT%H:%M:%SZ",        
-        "%Y-%m-%dT%H:%M:%S"           
+        "%Y-%m-%dT%H:%M:%S%z",       
+        "%Y-%m-%dT%H:%M:%S.%f",      
+        "%Y-%m-%dT%H:%M:%S",         
     ]
     
     for fmt in date_formats:
         try:
-            dt = datetime.strptime(date_string, fmt)
+            dt = datetime.strptime(standardized_date, fmt)
             return dt.isoformat()  
         except ValueError:
             continue
     
-    raise ValueError(f"Unsupported date format: {date_string}")
+    raise ValueError(f"Unsupported date format after standardization: {standardized_date}")
 
 def format_date_string1(date_string: str) -> str:
     # Try parsing the date string with milliseconds and 'Z' suffix
