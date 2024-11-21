@@ -9,6 +9,7 @@ import logging
 from datetime import datetime, timedelta
 import hashlib
 import requests
+import re
 from typing import AsyncGenerator, Any, Dict
 from exorde_data import (
     Item,
