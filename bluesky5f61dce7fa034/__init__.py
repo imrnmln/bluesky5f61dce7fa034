@@ -1086,36 +1086,49 @@ def format_date_string(date_string: str) -> str:
     """
     Parse and format a date string into a consistent ISO 8601 format.
     """
-    match = re.match(r"^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$", date_string)
+    # Match ISO8601/RFC3339 pattern
+    match = re.match(
+        r"^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})?$", 
+        date_string
+    )
     if not match:
         raise ValueError(f"Unsupported date format: {date_string}")
     
     base, fractional, suffix = match.groups()
+    
+    # Truncate fractional seconds to 6 digits (microseconds) if present
     if fractional:
-        fractional = fractional[:7]
+        fractional = fractional[:7]  # Includes the dot (e.g., ".933918")
     else:
         fractional = ""
     
+    # Default suffix to UTC 'Z' if no timezone is present
     if not suffix:
         suffix = "Z"
     
+    # Reassemble the standardized date
     standardized_date = f"{base}{fractional}{suffix}"
+    
+    # List of acceptable date formats
     date_formats = [
-        "%Y-%m-%dT%H:%M:%S.%fZ",      
-        "%Y-%m-%dT%H:%M:%S.%f%z",    
-        "%Y-%m-%dT%H:%M:%SZ",        
-        "%Y-%m-%dT%H:%M:%S%z",       
-        "%Y-%m-%dT%H:%M:%S.%f",      
-        "%Y-%m-%dT%H:%M:%S",         
+        "%Y-%m-%dT%H:%M:%S.%fZ",      # With fractional seconds and UTC
+        "%Y-%m-%dT%H:%M:%S.%f%z",     # With fractional seconds and timezone offset
+        "%Y-%m-%dT%H:%M:%SZ",         # Without fractional seconds, UTC
+        "%Y-%m-%dT%H:%M:%S%z",        # Without fractional seconds, timezone offset
+        "%Y-%m-%dT%H:%M:%S.%f",       # With fractional seconds, no timezone
+        "%Y-%m-%dT%H:%M:%S",          # Without fractional seconds, no timezone
     ]
     
+    # Attempt parsing using defined formats
     for fmt in date_formats:
         try:
             dt = datetime.strptime(standardized_date, fmt)
-            return dt.isoformat()  
+            # Return ISO 8601-compliant string
+            return dt.isoformat()
         except ValueError:
             continue
     
+    # If no format matches, raise an error
     raise ValueError(f"Unsupported date format after standardization: {standardized_date}")
 
 def format_date_string1(date_string: str) -> str:
