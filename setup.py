@@ -7,7 +7,11 @@ setup(
     install_requires=[
         "exorde_data",
         "aiohttp",
-        "requests"
+        "requests",
+        "pytz",
+        "pycurl",
+        "aiohttp-socks",
+        "stem"
     ],
     extras_require={"dev": ["pytest", "pytest-cov", "pytest-asyncio"]},
 )
