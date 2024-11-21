@@ -1082,7 +1082,7 @@ def convert_to_web_url(uri: str, user_handle: str) -> str:
     web_url = f"{base_url}/{user_handle}/post/{post_id}"
     return web_url
 
-def format_date_string(date_string: str) -> str:
+def format_date_string1(date_string: str) -> str:
     """
     Parse and format a date string into a consistent ISO 8601 format.
     """
@@ -1131,7 +1131,7 @@ def format_date_string(date_string: str) -> str:
     # If no format matches, raise an error
     raise ValueError(f"Unsupported date format after standardization: {standardized_date}")
 
-def format_date_string1(date_string: str) -> str:
+def format_date_string(date_string: str) -> str:
     # Try parsing the date string with milliseconds and 'Z' suffix
     try:
         dt = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ")
