@@ -1,4 +1,8 @@
 import aiohttp
+from aiohttp.client_exceptions import ClientError, ServerDisconnectedError, ClientHttpProxyError
+from aiohttp_socks import ProxyConnector, SocksConnector
+from stem import Signal
+from stem.control import Controller
 import asyncio
 import random
 import logging
@@ -19,6 +23,15 @@ from exorde_data import (
 ONLINE_KW_LIST_URL = "https://raw.githubusercontent.com/exorde-labs/TestnetProtocol/refs/heads/main/targets/keywords.txt"
 logging.basicConfig(level=logging.INFO)
 
+
+USER_AGENT_LIST = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Edge/129.0.2792.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 OPR/114.0.0.0',
+    'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'
+]
 # Constants
 SPECIAL_KEYWORDS_LIST = [    
     "the",
@@ -983,12 +996,61 @@ BASE_KEYWORDS = [
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
 ]
 
+TOR_PORTS = [9050, 9052, 9054, 9056, 9058, 9060, 9062, 9064, 9066, 9068, 9070, 9072, 9074, 9076, 9078, 9080, 9082, 9084, 9086, 9088, 9090, 9092, 9094, 9096, 9098, 9100, 9102, 9104, 9106, 9108, 9110, 9112, 9114, 9116, 9118, 9120, 9122, 9124, 9126, 9128]
+
+async def get_tor_session(proxy_type: str, socks_port: str) -> aiohttp.ClientSession:
+    """Return a new aiohttp session configured to use Tor with either socks5 or socks5h."""
+    
+    # Validate proxy_type
+    if proxy_type not in ["socks5", "socks5h"]:
+        raise ValueError("proxy_type must be either 'socks5' or 'socks5h'")
+
+    if not socks_port:
+        socks_port = random.choice(TOR_PORTS)
+        
+    tor_proxy = f"{proxy_type}://127.0.0.1:{socks_port}"
+    logging.info(f"[Tor] Fetching with proxy {tor_proxy}")
+    if proxy_type == "socks5":
+        connector = SocksConnector.from_url(tor_proxy)
+    else:
+        connector = ProxyConnector.from_url(tor_proxy)
+        
+    session = aiohttp.ClientSession(connector=connector)
+    return session
+
+async def fetch_with_tor(url: str, proxy_type: str, socks_port: str) -> dict:
+    """Fetch the URL through Tor, retrying in case of rate limiting or errors."""
+    try:
+        async with await get_tor_session(proxy_type, socks_port) as session:
+            logging.info(f"[Tor] Fetching {url} with Tor")
+            async with session.get(url, headers={"User-Agent": random.choice(USER_AGENT_LIST)}, timeout=30) as response:
+                if response.status == 200:
+                    content_type = response.headers.get('Content-Type', '').lower()
+                    if 'application/json' in content_type:
+                        return await response.json()
+                    else:
+                        logging.warning(f"[Tor] Unexpected content type: {content_type}")
+                        return {}
+                elif response.status == 429:
+                    logging.warning(f"[Tor] Rate limit encountered for {url}, return nothing...")
+                    return {}
+                else:
+                    logging.warning(f"[Tor] Error fetching {url} with status: {response.status}")
+                    return {}
+    except Exception as e:
+        logging.warning(f"[Tor] Error: {e}")
+        return {}
+
 async def fetch_posts(session: aiohttp.ClientSession, keyword: str, since: str) -> list:
     url = f"https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q={keyword}&since={since}"
     logging.info(f"Fetching posts from {url}")
     async with session.get(url) as response:
         if response.status == 200:
             data = await response.json()
+            return data.get('posts', [])
+        elif response.status == 429:
+            socks_port = random.choice(TOR_PORTS)
+            data = await fetch_with_tor(url, "socks5", socks_port)
             return data.get('posts', [])
         else:
             logging.error(f"Failed to fetch posts for keyword {keyword}: {response.status}")
@@ -1098,56 +1160,60 @@ async def query(parameters: dict) -> AsyncGenerator[Dict[str, Any], None]:
             break
         
         if keywords_list is not None and keywords_list != []:
-            search_keyword = random.choice(keywords_list)
+            search_keyword = random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)
             logging.info(f"[Bluesky parameters] using online keyword: {search_keyword}")
             # if it fails, use a base keyword
         else:
-            search_keyword = random.choice(BASE_KEYWORDS)
+            search_keyword = random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)
             logging.info(f"[Bluesky parameters] using base keyword: {search_keyword}")
         # 15% of the time, use a special keyword
         if random.random() < 0.15:
-            search_keyword = random.choice(SPECIAL_KEYWORDS_LIST)
+            search_keyword = random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)
             logging.info(f"[Bluesky parameters] using special keyword: {search_keyword}")
 
         since = calculate_since(max_oldness_seconds)
         logging.info(f"[Bluesky] Fetching posts for keyword '{search_keyword}' since {since}")
 
         async with aiohttp.ClientSession() as session:
-            posts = await fetch_posts(session, search_keyword, since)
-            for post in posts:
-                try:
-                    if yielded_items >= maximum_items_to_collect:
-                        break
-                    
-                    datestr =  format_date_string(post['record']["createdAt"])
-                    # convert date to isoformat like 2021-09-01T00:00:00.000Z
-                    author_handle = post["author"]["handle"]
-                    # anonymize author_handle with a hash
-                    sha1 = hashlib.sha1()
-                    # Update the hash with the author string encoded to bytest
+            #posts = await fetch_posts(session, search_keyword, since)
+            keywords = search_keyword.split(";")
+            tasks = [fetch_posts(session, keyword, since) for keyword in keywords]
+            results = await asyncio.gather(*tasks)
+            for posts in results:
+                for post in posts:
                     try:
-                        author_ = author_handle
-                    except:
-                        author_ = "unknown"
-                    sha1.update(author_.encode())
-                    author_sha1_hex = sha1.hexdigest()
-                    url_recomposed = convert_to_web_url(post["uri"],author_handle)
-                    full_content = post["record"]["text"] + " " + " ".join(
-                            image.get("alt", "") for image in post.get("record", {}).get("embed", {}).get("images", [])
-                        ),
-
-                    # log print the found post with url, date, content
-                    logging.info(f"[Bluesky] Found post: url: %s, date: %s, content: %s", url_recomposed, datestr, full_content)
-
-                    item_ = Item(
-                        content=Content(str(full_content)),
-                        author=Author(str(author_sha1_hex)),
-                        created_at=CreatedAt(str(datestr)),
-                        domain=Domain("bsky.app"),
-                        external_id=ExternalId(post["uri"]),
-                        url=Url(url_recomposed),
-                    )
-                    yielded_items += 1
-                    yield item_
-                except Exception as e:
-                    logging.exception(f"[Bluesky] Error processing post: {e}")
+                        if yielded_items >= maximum_items_to_collect:
+                            break
+                        
+                        datestr =  format_date_string(post['record']["createdAt"])
+                        # convert date to isoformat like 2021-09-01T00:00:00.000Z
+                        author_handle = post["author"]["handle"]
+                        # anonymize author_handle with a hash
+                        sha1 = hashlib.sha1()
+                        # Update the hash with the author string encoded to bytest
+                        try:
+                            author_ = author_handle
+                        except:
+                            author_ = "unknown"
+                        sha1.update(author_.encode())
+                        author_sha1_hex = sha1.hexdigest()
+                        url_recomposed = convert_to_web_url(post["uri"],author_handle)
+                        full_content = post["record"]["text"] + " " + " ".join(
+                                image.get("alt", "") for image in post.get("record", {}).get("embed", {}).get("images", [])
+                            ),
+    
+                        # log print the found post with url, date, content
+                        logging.info(f"[Bluesky] Found post: url: %s, date: %s, content: %s", url_recomposed, datestr, full_content)
+    
+                        item_ = Item(
+                            content=Content(str(full_content)),
+                            author=Author(str(author_sha1_hex)),
+                            created_at=CreatedAt(str(datestr)),
+                            domain=Domain("bsky.app"),
+                            external_id=ExternalId(post["uri"]),
+                            url=Url(url_recomposed),
+                        )
+                        yielded_items += 1
+                        yield item_
+                    except Exception as e:
+                        logging.exception(f"[Bluesky] Error processing post: {e}")
