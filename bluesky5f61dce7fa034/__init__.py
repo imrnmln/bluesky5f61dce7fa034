@@ -1082,6 +1082,28 @@ def convert_to_web_url(uri: str, user_handle: str) -> str:
     return web_url
 
 def format_date_string(date_string: str) -> str:
+    if "." in date_string:
+        date_string = date_string.split(".")[0] + "." + date_string.split(".")[1][:6]
+    
+    date_formats = [
+        "%Y-%m-%dT%H:%M:%S.%fZ",      
+        "%Y-%m-%dT%H:%M:%S.%f",      
+        "%Y-%m-%dT%H:%M:%S.%f%z",     
+        "%Y-%m-%dT%H:%M:%S%z",       
+        "%Y-%m-%dT%H:%M:%SZ",        
+        "%Y-%m-%dT%H:%M:%S"           
+    ]
+    
+    for fmt in date_formats:
+        try:
+            dt = datetime.strptime(date_string, fmt)
+            return dt.isoformat()  
+        except ValueError:
+            continue
+    
+    raise ValueError(f"Unsupported date format: {date_string}")
+
+def format_date_string1(date_string: str) -> str:
     # Try parsing the date string with milliseconds and 'Z' suffix
     try:
         dt = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ")
