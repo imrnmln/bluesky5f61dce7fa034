@@ -1024,7 +1024,7 @@ async def fetch_with_tor(url: str, proxy_type: str, socks_port: str) -> dict:
     try:
         async with await get_tor_session(proxy_type, socks_port) as session:
             logging.info(f"[Tor] Fetching {url} with Tor")
-            async with session.get(url, headers={"User-Agent": random.choice(USER_AGENT_LIST)}, timeout=30) as response:
+            async with session.get(url, headers={"User-Agent": random.choice(USER_AGENT_LIST)}, timeout=15) as response:
                 if response.status == 200:
                     content_type = response.headers.get('Content-Type', '').lower()
                     if 'application/json' in content_type:
@@ -1210,15 +1210,15 @@ async def query(parameters: dict) -> AsyncGenerator[Dict[str, Any], None]:
             break
         
         if keywords_list is not None and keywords_list != []:
-            search_keyword = random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)
+            search_keyword = random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)
             logging.info(f"[Bluesky parameters] using online keyword: {search_keyword}")
             # if it fails, use a base keyword
         else:
-            search_keyword = random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)
+            search_keyword = random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)
             logging.info(f"[Bluesky parameters] using base keyword: {search_keyword}")
         # 15% of the time, use a special keyword
         if random.random() < 0.15:
-            search_keyword = random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)
+            search_keyword = random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)
             logging.info(f"[Bluesky parameters] using special keyword: {search_keyword}")
 
         since = calculate_since(max_oldness_seconds)
