@@ -998,6 +998,8 @@ BASE_KEYWORDS = [
 ]
 
 TOR_PORTS = [9050, 9052, 9054, 9056, 9058, 9060, 9062, 9064, 9066, 9068, 9070, 9072, 9074, 9076, 9078, 9080, 9082, 9084, 9086, 9088]
+TOR_PORTS = [9050, 9052, 9054, 9056, 9058, 9060, 9062, 9064, 9066, 9068, 9070, 9072, 9074, 9076, 9078, 9080, 9082, 9084, 9086, 9088, 9090, 9092, 9094, 9096, 9098, 9100, 9102, 9104, 9106, 9108, 9110, 9112, 9114, 9116, 9118, 9120, 9122, 9124, 9126, 9128]
+
 
 async def get_tor_session(proxy_type: str, socks_port: str) -> aiohttp.ClientSession:
     """Return a new aiohttp session configured to use Tor with either socks5 or socks5h."""
@@ -1210,15 +1212,15 @@ async def query(parameters: dict) -> AsyncGenerator[Dict[str, Any], None]:
             break
         
         if keywords_list is not None and keywords_list != []:
-            search_keyword = random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)
+            search_keyword = random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)+";"+random.choice(keywords_list)
             logging.info(f"[Bluesky parameters] using online keyword: {search_keyword}")
             # if it fails, use a base keyword
         else:
-            search_keyword = random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)
+            search_keyword = random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)+";"+random.choice(BASE_KEYWORDS)
             logging.info(f"[Bluesky parameters] using base keyword: {search_keyword}")
         # 15% of the time, use a special keyword
         if random.random() < 0.15:
-            search_keyword = random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)
+            search_keyword = random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)+";"+random.choice(SPECIAL_KEYWORDS_LIST)
             logging.info(f"[Bluesky parameters] using special keyword: {search_keyword}")
 
         since = calculate_since(max_oldness_seconds)
