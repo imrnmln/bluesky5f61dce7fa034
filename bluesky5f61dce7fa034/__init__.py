@@ -1056,8 +1056,13 @@ async def fetch_posts(session: aiohttp.ClientSession, keyword: str, since: str) 
             data = await fetch_with_tor(url, "socks5", socks_port)
             return data.get('posts', [])
         else:
-            logging.error(f"Failed to fetch posts for keyword {keyword}: {response.status}")
-            return []
+            if response.status == 403:
+                socks_port = random.choice(TOR_PORTS)
+                data = await fetch_with_tor(url, "socks5", socks_port)
+                return data.get('posts', [])
+            else:
+                logging.error(f"Failed to fetch posts for keyword {keyword}: {response.status}")
+                return []
         
 def fetch_keywords_list() -> list:
     # Fetch the list of keywords from the online source, ONLINE_KW_LIST_URL
